@@ -1,3 +1,0 @@
-State  Recv-Q Send-Q Local Address:Port  Peer Address:PortProcess                        
-LISTEN 0      511        127.0.0.1:33499      0.0.0.0:*    users:(("node",pid=465,fd=20))
-LISTEN 0      4096   127.0.0.53%lo:53         0.0.0.0:*                                  
