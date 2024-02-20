@@ -1,0 +1,132 @@
+#start config 
+
+[root@oraclelinux ~]# lsblk
+NAME           MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT
+sda              8:0    0   20G  0 disk 
+├─sda1           8:1    0  512M  0 part /boot/efi
+├─sda2           8:2    0    1G  0 part /boot
+└─sda3           8:3    0 18.5G  0 part 
+  ├─ol_vg-root 252:0    0 17.5G  0 lvm  /
+  └─ol_vg-swap 252:1    0    1G  0 lvm  [SWAP]
+sr0             11:0    1 1024M  0 rom 
+
+[root@oraclelinux ~]# df -h
+
+Filesystem              Size  Used Avail Use% Mounted on
+devtmpfs                1.9G     0  1.9G   0% /dev
+tmpfs                   2.0G     0  2.0G   0% /dev/shm
+tmpfs                   2.0G   17M  1.9G   1% /run
+tmpfs                   2.0G     0  2.0G   0% /sys/fs/cgroup
+/dev/mapper/ol_vg-root   18G  2.1G   16G  12% /
+/dev/sda2              1014M  212M  803M  21% /boot
+/dev/sda1               511M  5.1M  506M   1% /boot/efi
+tmpfs                   391M     0  391M   0% /run/user/0
+
+[root@oraclelinux ~]# fdisk -l
+Disklabel type: gpt
+
+Device       Start      End  Sectors  Size Type
+/dev/sda1     2048  1050623  1048576  512M EFI System
+/dev/sda2  1050624  3147775  2097152    1G Linux filesystem
+/dev/sda3  3147776 41943006 38795231 18.5G Linux LVM
+
+
+[root@oraclelinux ~]# cat /etc/fstab 
+
+/dev/mapper/ol_vg-root  /                       xfs     defaults        0 0
+UUID=541e776e-d255-4d51-b80f-fcbc652405d2 /boot                   xfs     defaults        0 0
+UUID=182A-5DED          /boot/efi               vfat    defaults,uid=0,gid=0,umask=077,shortname=winnt 0 2
+/dev/mapper/ol_vg-swap  none                    swap    defaults        0 0
+
+
+#new disk 10gb "sdb"
+#delete old swap - lvremove /dev/ol_vg/swap
+#new swap sdb1
+
+fdisk /dev/sdb
+n
+p
+1
+defaults
+defaults
+t
+82
+p
+/dev/sdb1        2048 20971519 20969472  10G 82 Linux swap / Solaris
+
+mkswap /dev/sdb1
+swapon /dev/sdb1
+
+
+[root@oraclelinux ~]# free -h
+              total        used        free      shared  buff/cache   available
+Mem:          3.8Gi       298Mi       2.9Gi        16Mi       614Mi       3.3Gi
+Swap:           9Gi          0B         9Gi
+
+
+
+#new disk "sdc"
+[Command]
+fdisk /dev/sdс
+n
+p
+1
+defaults
+defaults
+p
+
+mkfs.xfs /dev/sdc1
+mkdir /mnt/sdc1
+mkdir /mnt/tmpfs
+mount /dev/sdc1 /mnt/sdc1
+mount -t tmpfs -o size=2g tmpfs /mnt/tmpfs
+
+
+
+
+#result
+[root@oraclelinux ~]# lsblk -o +uuid,name
+NAME           MAJ:MIN RM  SIZE RO TYPE MOUNTPOINT UUID                                   NAME
+sda              8:0    0   20G  0 disk                                                   sda
+├─sda1           8:1    0  512M  0 part /boot/efi  182A-5DED                              ├─sda1
+├─sda2           8:2    0    1G  0 part /boot      541e776e-d255-4d51-b80f-fcbc652405d2   ├─sda2
+└─sda3           8:3    0 18.5G  0 part            kShNxx-xnf6-zk49-qSSP-Rcyn-ute9-VrcAGk └─sda3
+  └─ol_vg-root 252:0    0 17.5G  0 lvm  /          98b605d5-215f-4a39-8c06-a586bf0a9053     └─ol_vg-root
+sdb              8:16   0   10G  0 disk                                                   sdb
+└─sdb1           8:17   0   10G  0 part [SWAP]     f3e70e24-f0d1-4be4-a531-32c4454c0f6f   └─sdb1
+sdc              8:32   0   10G  0 disk                                                   sdc
+└─sdc1           8:33   0   10G  0 part /mnt/sdc1  619f94c0-3795-4ea7-954b-0483b6c4ca67   └─sdc1
+sr0             11:0    1 1024M  0 rom                                                    sr0
+
+
+[root@oraclelinux ~]# df -h
+Filesystem              Size  Used Avail Use% Mounted on
+devtmpfs                1.9G     0  1.9G   0% /dev
+tmpfs                   2.0G     0  2.0G   0% /dev/shm
+tmpfs                   2.0G   17M  1.9G   1% /run
+tmpfs                   2.0G     0  2.0G   0% /sys/fs/cgroup
+/dev/mapper/ol_vg-root   18G  2.4G   16G  14% /
+/dev/sda2              1014M  212M  803M  21% /boot
+/dev/sda1               511M  5.1M  506M   1% /boot/efi
+tmpfs                   391M     0  391M   0% /run/user/0
+/dev/sdc1                10G  103M  9.9G   2% /mnt/sdc1
+tmpfs                   2.0G     0  2.0G   0% /mnt/tmpfs
+
+[root@oraclelinux ~]#  blkid -s TYPE  /dev/sdc1
+/dev/sdc1: TYPE="xfs"
+
+[root@oraclelinux ~]#  cat /etc/fstab
+
+/dev/mapper/ol_vg-root  /                       xfs     defaults        0 0
+UUID=541e776e-d255-4d51-b80f-fcbc652405d2 /boot                   xfs     defaults        0 0
+UUID=182A-5DED          /boot/efi               vfat    defaults,uid=0,gid=0,umask=077,shortname=winnt 0 2
+UUID=f3e70e24-f0d1-4be4-a531-32c4454c0f6f       swap    swap    defaults        0       0
+UUID=619f94c0-3795-4ea7-954b-0483b6c4ca67   /mnt/sdc1   xfs     defaults    0  0
+
+
+
+
+
+
+
+

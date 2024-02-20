@@ -1,0 +1,7 @@
+uname -r
+5.15.0-203.146.5.1.el8uek.x86_64
+cd /boot - увидел доступные ядера
+grubby --set-default /boot/vmlinuz-5.15.0-202.135.2.el8uek.x86_64
+reboot
+uname -r
+5.15.0-202.135.2.el8uek.x86_64
